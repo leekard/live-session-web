@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { licenses, orders, users } from "@/shared/mock/data";
+import { LicensePlanChart } from "@/widgets";
 import { Button, Card, CardContent, CardHeader, CardTitle } from "@/shared/ui";
 
 export const metadata: Metadata = {
@@ -48,6 +49,15 @@ export default function AdminDashboardPage() {
           </Card>
         ))}
       </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Типы используемых лицензий</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <LicensePlanChart />
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader>

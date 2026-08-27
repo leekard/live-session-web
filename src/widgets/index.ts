@@ -8,3 +8,4 @@ export { Pricing } from "./Pricing";
 export { Faq } from "./Faq";
 export { SystemRequirements } from "./SystemRequirements";
 export { Download } from "./Download";
+export { LicensePlanChart } from "./LicensePlanChart";
