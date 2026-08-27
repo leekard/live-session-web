@@ -1,0 +1,14 @@
+node_modules
+.next
+.git
+.gitignore
+npm-debug.log*
+Dockerfile
+docker-compose.yml
+.dockerignore
+README.md
+AGENTS.md
+CLAUDE.md
+*.tsbuildinfo
+next-env.d.ts
+.vercel

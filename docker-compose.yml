@@ -1,0 +1,14 @@
+services:
+  live-session-web:
+    build: .
+    image: live-session-web:latest
+    container_name: live-session-web
+    restart: unless-stopped
+    ports:
+      - "8080:3000"
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:3000/"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
