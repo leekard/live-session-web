@@ -65,8 +65,8 @@ const ordersRoutes: FastifyPluginAsync = async (app) => {
       ok: true,
       stats: {
         users: users.rows[0].total,
-        licensesByStatus: Object.fromEntries(licenses.rows.map((r: any) => [r.status, r.n])),
-        licensesByPlan: Object.fromEntries(licByPlan.rows.map((r: any) => [r.plan, r.n])),
+        licensesByStatus: Object.fromEntries(licenses.rows.map((r: { status: string; n: number }) => [r.status, r.n])),
+        licensesByPlan: Object.fromEntries(licByPlan.rows.map((r: { plan: string; n: number }) => [r.plan, r.n])),
         revenue: revenue.rows[0].total,
       },
     });

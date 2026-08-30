@@ -8,27 +8,26 @@ import { requireUser, requireAdmin } from '../plugins/auth.js';
  *  - Desktop: Bearer token with subject "dev:<deviceId>:<userId>" -> { id, deviceId }
  */
 async function identify(request: FastifyRequest, reply: FastifyReply): Promise<{ id: number; deviceId?: string; role: string } | null> {
-  // Try cookie auth (browser).
-  const cookieUser = await requireUser(request, reply);
-  if (cookieUser) return { id: cookieUser.id, role: cookieUser.role };
-
-  // Reset reply code (requireUser may have sent 401).
-  reply.code(200);
-
-  // Try bearer (desktop).
+  // Desktop: Bearer token with subject "dev:<deviceId>:<userId>".
   const authz = request.headers.authorization;
   if (authz && authz.startsWith('Bearer ')) {
     try {
       const payload = request.server.jwt.verify<{ sub: string; role: string }>(authz.slice(7));
       if (payload.sub && payload.sub.startsWith('dev:')) {
         const [, deviceId, userId] = payload.sub.split(':');
-        return { id: Number(userId), deviceId, role: payload.role };
+        const id = Number(userId);
+        if (!Number.isInteger(id)) return null;
+        return { id, deviceId, role: payload.role };
       }
       return null;
     } catch {
       return null;
     }
   }
+
+  // Browser: JWT in cookie via requireUser -> { id }.
+  const cookieUser = await requireUser(request, reply);
+  if (cookieUser) return { id: cookieUser.id, role: cookieUser.role };
   return null;
 }
 

@@ -88,7 +88,7 @@ describe('device login flow', () => {
       url: '/api/auth/login',
       payload: { email: 'dev@test.com', password: 'secret123' },
     });
-    const cookie = String(login.headers["set-cookie"]?.[0] ?? "").split(";")[0];
+    const cookie = String(login.headers["set-cookie"] ?? "").split(";")[0];
     const approve = await app.inject({
       method: 'POST',
       url: '/api/auth/device/confirm',
@@ -116,7 +116,7 @@ describe('licenses', () => {
       url: '/api/auth/register',
       payload: { email: 'lic@test.com', password: 'secret123' },
     });
-    const cookie = String(reg.headers["set-cookie"]?.[0] ?? "").split(";")[0];
+    const cookie = String(reg.headers["set-cookie"] ?? "").split(";")[0];
 
     // create an order -> issues a license
     const order = await app.inject({

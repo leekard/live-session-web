@@ -1,9 +1,13 @@
 import Link from "next/link";
 import Image from "next/image";
 import { mainNav, siteConfig, siteLinks } from "@/shared/config/site";
+import { getSession } from "@/shared/lib/auth";
 import { Button, Container } from "@/shared/ui";
+import { LogoutButton } from "./LogoutButton";
 
-export function SiteHeader() {
+export async function SiteHeader() {
+  const { user } = await getSession();
+
   return (
     <header className="sticky top-0 z-40 w-full border-b border-border-subtle bg-background/90 backdrop-blur">
       <Container className="flex h-16 items-center justify-between">
@@ -32,9 +36,22 @@ export function SiteHeader() {
           ))}
         </nav>
         <div className="flex items-center gap-2">
-          <Button href={siteLinks.account} variant="ghost" size="sm">
-            Войти
-          </Button>
+          {user ? (
+            <>
+              <Button
+                href={user.role === "admin" ? siteLinks.admin : siteLinks.account}
+                variant="ghost"
+                size="sm"
+              >
+                Профиль
+              </Button>
+              <LogoutButton />
+            </>
+          ) : (
+            <Button href={siteLinks.account} variant="ghost" size="sm">
+              Войти
+            </Button>
+          )}
           <Button href="/#pricing" size="sm">
             Купить
           </Button>

@@ -1,13 +1,6 @@
 import { Badge, Button, Card, CardContent, CardHeader, CardTitle } from "@/shared/ui";
 import { requireUser } from "@/shared/lib/auth";
 
-const planLabel: Record<string, string> = {
-  free: "Бесплатный",
-  basic: "Базовый",
-  pro: "Профессиональный",
-  team: "Командный",
-};
-
 export default async function AccountPage() {
   const { user } = await requireUser();
 

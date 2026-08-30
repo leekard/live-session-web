@@ -2,13 +2,14 @@ import { readFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 import bcrypt from 'bcryptjs';
+import pg from 'pg';
 import { pool } from './pool.js';
 import { config } from '../config.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const migrationsDir = path.join(__dirname, 'migrations');
 
-async function ensureTable(client: any) {
+async function ensureTable(client: pg.PoolClient) {
   await client.query(`
     CREATE TABLE IF NOT EXISTS schema_migrations (
       name TEXT PRIMARY KEY,
@@ -44,7 +45,7 @@ export async function runMigrations(): Promise<void> {
 }
 
 // Per-file parameters (seed admin uses bcrypt hash).
-function getParams(file: string): any[] {
+function getParams(file: string): string[] {
   if (file.startsWith('002_seed_admin')) {
     const hash = bcrypt.hashSync(config.adminPassword, 10);
     return [config.adminEmail, hash];

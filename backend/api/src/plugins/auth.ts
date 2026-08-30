@@ -7,7 +7,7 @@ import { config } from '../config.js';
 
 declare module 'fastify' {
   interface FastifyInstance {
-    getAuthUser(request: FastifyRequest): Promise<any | null>;
+    getAuthUser(request: FastifyRequest): Promise<{ id: number; role: string } | null>;
   }
 }
 
@@ -26,19 +26,20 @@ export interface AuthedUser {
 
 const authPlugin: FastifyPluginAsync = async (app) => {
   await app.register(cookie);
-  await app.register(jwt, { secret: config.jwtSecret });
+  await app.register(jwt, {
+    secret: config.jwtSecret,
+    cookie: { cookieName: config.cookieName, signed: false },
+  });
 
-  app.decorate('getAuthUser', async (request: FastifyRequest): Promise<any | null> => {
+  app.decorate('getAuthUser', async (request: FastifyRequest): Promise<{ id: number; role: string } | null> => {
     try {
       const payload = await request.jwtVerify<{ sub: string; role: string }>();
-      return { id: Number(payload.sub), role: payload.role };
+      const id = Number(payload.sub);
+      if (!Number.isInteger(id) || id <= 0) return null;
+      return { id, role: payload.role };
     } catch {
       return null;
     }
-  });
-
-  app.addHook('onRequest', async (request) => {
-    request.user = null as any;
   });
 };
 

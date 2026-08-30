@@ -1,4 +1,4 @@
-import type { DashboardStats, License, Order, User } from "./types";
+import type { AdminUser, DashboardStats, License, Order, User } from "./types";
 
 const backendUrl = process.env.BACKEND_URL || "http://api:3001";
 const cookieName = process.env.COOKIE_NAME || "livesession_auth";
@@ -36,7 +36,7 @@ export async function myOrders(cookie: string | undefined): Promise<Order[]> {
   return body.ok ? (body.orders as Order[]) : [];
 }
 
-export async function adminUsers(cookie: string | undefined): Promise<{ id: number; email: string; role: string; created_at: string }[]> {
+export async function adminUsers(cookie: string | undefined): Promise<AdminUser[]> {
   if (!cookie) return [];
   const res = await fetch(`${backendUrl}/api/admin/users`, {
     headers: { cookie },
@@ -44,7 +44,7 @@ export async function adminUsers(cookie: string | undefined): Promise<{ id: numb
   });
   if (!res.ok) return [];
   const body = await res.json();
-  return body.ok ? (body.users as any[]) : [];
+  return body.ok ? (body.users as AdminUser[]) : [];
 }
 
 export async function adminLicenses(cookie: string | undefined): Promise<License[]> {

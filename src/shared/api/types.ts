@@ -31,3 +31,10 @@ export type DashboardStats = {
   licensesByPlan: Record<string, number>;
   revenue: number;
 };
+
+export type AdminUser = {
+  id: number;
+  email: string;
+  role: string;
+  created_at: string;
+};

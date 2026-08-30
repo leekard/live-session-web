@@ -2,7 +2,7 @@ import { FastifyPluginAsync, FastifyReply, FastifyRequest } from 'fastify';
 import bcrypt from 'bcryptjs';
 import { pool } from '../db/pool.js';
 import { config } from '../config.js';
-import { requireUser, AuthedUser } from '../plugins/auth.js';
+import { requireUser } from '../plugins/auth.js';
 
 function setAuthCookie(reply: FastifyReply, token: string) {
   reply.setCookie(config.cookieName, token, {
@@ -30,8 +30,8 @@ const authRoutes: FastifyPluginAsync = async (app) => {
       const token = app.jwt.sign({ sub: String(user.id), role: user.role });
       setAuthCookie(reply, token);
       return reply.code(201).send({ ok: true, user: { id: user.id, email: user.email, role: user.role } });
-    } catch (err: any) {
-      if (err.code === '23505') return reply.code(409).send({ ok: false, error: 'EMAIL_TAKEN' });
+    } catch (err: unknown) {
+      if ((err as { code?: string })?.code === '23505') return reply.code(409).send({ ok: false, error: 'EMAIL_TAKEN' });
       throw err;
     }
   });
@@ -57,6 +57,23 @@ const authRoutes: FastifyPluginAsync = async (app) => {
     const user = await requireUser(request, reply);
     if (!user) return;
     return reply.send({ ok: true, user });
+  });
+
+  app.post('/change-password', async (request: FastifyRequest<{ Body: { currentPassword?: string; newPassword?: string } }>, reply) => {
+    const user = await requireUser(request, reply);
+    if (!user) return;
+    const { currentPassword, newPassword } = request.body || {};
+    if (!currentPassword || !newPassword || newPassword.length < 6) {
+      return reply.code(400).send({ ok: false, error: 'VALIDATION', message: 'Invalid password (new password min 6 chars)' });
+    }
+    const res = await pool.query('SELECT password_hash FROM users WHERE id = $1', [user.id]);
+    if (res.rowCount === 0) return reply.code(401).send({ ok: false, error: 'UNAUTHORIZED' });
+    if (!bcrypt.compareSync(currentPassword, res.rows[0].password_hash)) {
+      return reply.code(400).send({ ok: false, error: 'WRONG_PASSWORD', message: 'Current password is incorrect' });
+    }
+    const hash = bcrypt.hashSync(newPassword, 10);
+    await pool.query('UPDATE users SET password_hash = $1 WHERE id = $2', [hash, user.id]);
+    return reply.send({ ok: true });
   });
 };
 

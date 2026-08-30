@@ -1,4 +1,4 @@
-import { FastifyPluginAsync, FastifyReply, FastifyRequest } from 'fastify';
+import { FastifyPluginAsync, FastifyRequest } from 'fastify';
 import { randomBytes } from 'node:crypto';
 import { pool } from '../db/pool.js';
 import { config } from '../config.js';
