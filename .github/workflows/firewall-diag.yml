@@ -1,0 +1,37 @@
+name: Firewall Diag
+
+on:
+  workflow_dispatch:
+
+jobs:
+  diag:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Diagnose firewall persistence options
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          port: ${{ secrets.DEPLOY_PORT }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          script: |
+            echo '=== OS ==='
+            cat /etc/os-release 2>/dev/null | head -6 || echo 'no os-release'
+            echo '=== whoami ==='
+            whoami
+            echo '=== available tools ==='
+            for t in ufw iptables iptables-save iptables-restore netfilter-persistent nft iptables-persistent systemctl; do
+              if command -v $t >/dev/null 2>&1; then echo "FOUND: $t"; else echo "MISSING: $t"; fi
+            done
+            echo '=== /etc/init.d ==='
+            ls /etc/init.d 2>/dev/null | grep -iE 'netfilter|iptables' || echo 'no netfilter/iptables init'
+            echo '=== systemd units ==='
+            systemctl list-unit-files 2>/dev/null | grep -iE 'netfilter|iptables' || echo 'no matching units'
+            echo '=== /etc/iptables ==='
+            ls -la /etc/iptables 2>/dev/null || echo 'no /etc/iptables dir'
+            echo '=== current filter rules for 80 ==='
+            iptables-save 2>/dev/null | grep -E 'dport 80|COMMIT|^\*|:INPUT' || echo 'iptables-save unavailable/failed'
+            echo '=== is iptables rule already in effect? ==='
+            iptables -C INPUT -p tcp --dport 80 -j ACCEPT 2>&1 && echo 'RULE_PRESENT' || echo 'RULE_ABSENT'
+            echo '=== rc.local ==='
+            grep -i iptables /etc/rc.local 2>/dev/null || echo 'no iptables in rc.local / no rc.local'
