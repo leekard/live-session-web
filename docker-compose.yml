@@ -1,8 +1,8 @@
 services:
   nginx:
     build:
-      context: .
-      dockerfile: deploy/nginx/Dockerfile
+      context: ./deploy/nginx
+      dockerfile: Dockerfile
     image: live-session-nginx:latest
     container_name: live-session-nginx
     restart: unless-stopped
