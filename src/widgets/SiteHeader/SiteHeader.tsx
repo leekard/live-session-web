@@ -4,6 +4,7 @@ import { mainNav, siteConfig, siteLinks } from "@/shared/config/site";
 import { getSession } from "@/shared/lib/auth";
 import { Button, Container } from "@/shared/ui";
 import { LogoutButton } from "./LogoutButton";
+import { MobileMenu } from "./MobileMenu";
 
 export async function SiteHeader() {
   const { user } = await getSession();
@@ -36,23 +37,26 @@ export async function SiteHeader() {
           ))}
         </nav>
         <div className="flex items-center gap-2">
-          {user ? (
-            <>
-              <Button
-                href={user.role === "admin" ? siteLinks.admin : siteLinks.account}
-                variant="ghost"
-                size="sm"
-              >
-                Профиль
+          <div className="hidden md:flex items-center gap-2">
+            {user ? (
+              <>
+                <Button
+                  href={user.role === "admin" ? siteLinks.admin : siteLinks.account}
+                  variant="ghost"
+                  size="sm"
+                >
+                  Профиль
+                </Button>
+                <LogoutButton />
+              </>
+            ) : (
+              <Button href={siteLinks.account} variant="ghost" size="sm">
+                Войти
               </Button>
-              <LogoutButton />
-            </>
-          ) : (
-            <Button href={siteLinks.account} variant="ghost" size="sm">
-              Войти
-            </Button>
-          )}
-          <Button href="/#pricing" size="sm">
+            )}
+          </div>
+          <MobileMenu nav={mainNav} user={user} accountHref={user?.role === "admin" ? siteLinks.admin : siteLinks.account} />
+          <Button href="/#pricing" size="sm" className="hidden sm:inline-flex">
             Купить
           </Button>
         </div>
