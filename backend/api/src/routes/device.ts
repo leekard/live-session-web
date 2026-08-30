@@ -193,6 +193,24 @@ const deviceRoutes: FastifyPluginAsync = async (app) => {
       [identity.id]
     );
     if (licRes.rowCount === 0) {
+      const inactiveRes = await pool.query(
+        `SELECT status, expires_at FROM licenses
+         WHERE user_id = $1
+         ORDER BY id DESC LIMIT 1`,
+        [identity.id]
+      );
+      const inactive = inactiveRes.rows[0];
+      if (inactive?.status === 'revoked') {
+        return reply.code(410).send({ ok: false, error: 'LICENSE_REVOKED', message: 'License has been revoked' });
+      }
+      if (inactive?.expires_at && new Date(inactive.expires_at).getTime() < Date.now()) {
+        return reply.code(410).send({
+          ok: false,
+          error: 'LICENSE_EXPIRED',
+          message: 'License has expired',
+          expiresAt: inactive.expires_at,
+        });
+      }
       return reply.code(404).send({ ok: false, error: 'NO_LICENSE', message: 'No active license on this account' });
     }
     const lic = licRes.rows[0];
@@ -220,6 +238,41 @@ const deviceRoutes: FastifyPluginAsync = async (app) => {
       ok: true,
       activated: true,
       license: { id: lic.id, plan: lic.plan, status: 'active', expiresAt: lic.expires_at },
+    });
+  });
+
+  // Desktop: create and activate the account's one-time trial license.
+  app.post('/device/trial', async (request, reply) => {
+    const identity = await identify(request, reply);
+    if (!identity || !identity.deviceId) return reply.code(401).send({ ok: false, error: 'UNAUTHORIZED' });
+
+    const usedRes = await pool.query(
+      `SELECT id FROM licenses WHERE user_id = $1 AND plan = 'free' ORDER BY id DESC LIMIT 1`,
+      [identity.id]
+    );
+    if ((usedRes.rowCount ?? 0) > 0) {
+      return reply.code(409).send({ ok: false, error: 'TRIAL_ALREADY_USED', message: 'Trial period has already been used' });
+    }
+
+    const limit = await enforceDeviceLimit(identity.id, 'free', { excludeDeviceId: identity.deviceId });
+    if (!limit.ok) {
+      return reply.code(409).send({ ok: false, error: 'DEVICE_LIMIT', message: 'Active device limit reached for this plan' });
+    }
+
+    const expiresAt = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000);
+    const licenseKey = 'LS-TRIAL-' + randomBytes(6).toString('hex').toUpperCase();
+    const result = await pool.query(
+      `INSERT INTO licenses (user_id, plan, status, license_key, device_id, activated_at, expires_at)
+       VALUES ($1, 'free', 'active', $2, $3, now(), $4)
+       RETURNING id, plan, status, expires_at`,
+      [identity.id, licenseKey, identity.deviceId, expiresAt]
+    );
+
+    const license = result.rows[0];
+    return reply.send({
+      ok: true,
+      activated: true,
+      license: { id: license.id, plan: license.plan, status: license.status, expiresAt: license.expires_at },
     });
   });
 };
