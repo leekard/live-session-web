@@ -28,3 +28,11 @@ jobs:
             COOKIE_NAME=livesession_auth
             EOF
             docker compose up -d --build --remove-orphans
+            echo '--- deploy diagnostics ---'
+            docker ps --filter "name=live-session" --format '{{.Names}}: {{.Status}}'
+            echo '--- port 80/443 listeners ---'
+            (ss -ltnp 2>/dev/null | grep -E ':(80|443)\b') || echo 'no 80/443 listener'
+            echo '--- firewall status ---'
+            if command -v ufw >/dev/null 2>&1; then ufw status verbose || true; else echo 'no ufw'; fi
+            echo '--- open port 80 if ufw present ---'
+            if command -v ufw >/dev/null 2>&1; then ufw allow 80/tcp || true; fi
