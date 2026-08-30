@@ -1,0 +1,36 @@
+name: Firewall Diag
+
+on:
+  workflow_dispatch:
+
+jobs:
+  diag:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Read-only firewall state
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          port: ${{ secrets.DEPLOY_PORT }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          script: |
+            echo '=== OS ==='
+            grep -E '^(ID|PRETTY_NAME)=' /etc/os-release 2>/dev/null || echo 'no os-release'
+            echo '=== ufw status ==='
+            ufw status 2>&1 || echo 'ufw err'
+            echo '=== ufw status verbose ==='
+            ufw status verbose 2>&1 | head -30 || true
+            echo '=== ufw numbered ==='
+            ufw status numbered 2>&1 | head -30 || true
+            echo '=== ufw service ==='
+            systemctl is-active ufw 2>&1 || true
+            systemctl is-enabled ufw 2>&1 || true
+            echo '=== iptables INPUT chain ==='
+            iptables -L INPUT -n -v 2>&1 | head -40 || echo 'no iptables access'
+            echo '=== iptables-save (filter) ==='
+            iptables-save 2>/dev/null | grep -E '^:INPUT|dport (22|80|443)|COMMIT' || echo 'iptables-save none'
+            echo '=== nft ruleset (key) ==='
+            nft list ruleset 2>/dev/null | grep -iE 'policy|dport (22|80|443)|ct state' | head -40 || echo 'no nft'
+            echo '=== /etc/ufw ==='
+            ls /etc/ufw 2>/dev/null | head || echo 'no /etc/ufw'
