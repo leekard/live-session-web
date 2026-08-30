@@ -38,3 +38,18 @@ export type AdminUser = {
   role: string;
   created_at: string;
 };
+
+export type Device = {
+  deviceId: string;
+  name: string | null;
+  status: "active" | "revoked";
+  lastSeenAt: string | null;
+  createdAt: string;
+  license: { plan: License["plan"]; status: string; activatedAt: string | null } | null;
+};
+
+export type PlanLimit = {
+  plan: string;
+  device_limit: number;
+  updated_at: string;
+};

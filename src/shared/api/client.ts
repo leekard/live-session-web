@@ -1,4 +1,4 @@
-import type { AdminUser, DashboardStats, License, Order, User } from "./types";
+import type { AdminUser, DashboardStats, Device, License, Order, PlanLimit, User } from "./types";
 
 const backendUrl = process.env.BACKEND_URL || "http://api:3001";
 const cookieName = process.env.COOKIE_NAME || "livesession_auth";
@@ -34,6 +34,17 @@ export async function myOrders(cookie: string | undefined): Promise<Order[]> {
   if (!res.ok) return [];
   const body = await res.json();
   return body.ok ? (body.orders as Order[]) : [];
+}
+
+export async function myDevices(cookie: string | undefined): Promise<Device[]> {
+  if (!cookie) return [];
+  const res = await fetch(`${backendUrl}/api/devices`, {
+    headers: { cookie },
+    cache: "no-store",
+  });
+  if (!res.ok) return [];
+  const body = await res.json();
+  return body.ok ? (body.devices as Device[]) : [];
 }
 
 export async function adminUsers(cookie: string | undefined): Promise<AdminUser[]> {
@@ -78,6 +89,17 @@ export async function adminStats(cookie: string | undefined): Promise<DashboardS
   if (!res.ok) return null;
   const body = await res.json();
   return body.ok ? (body.stats as DashboardStats) : null;
+}
+
+export async function adminPlanLimits(cookie: string | undefined): Promise<PlanLimit[]> {
+  if (!cookie) return [];
+  const res = await fetch(`${backendUrl}/api/admin/plan-limits`, {
+    headers: { cookie },
+    cache: "no-store",
+  });
+  if (!res.ok) return [];
+  const body = await res.json();
+  return body.ok ? (body.limits as PlanLimit[]) : [];
 }
 
 export { cookieName };

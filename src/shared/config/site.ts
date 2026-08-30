@@ -28,6 +28,7 @@ export const mainNav: NavItem[] = [
 export const accountNav: NavItem[] = [
   { title: "Профиль", href: "/account" },
   { title: "Лицензии", href: "/account/licenses" },
+  { title: "Устройства", href: "/account/devices" },
   { title: "Настройки", href: "/account/settings" },
 ];
 
@@ -36,6 +37,7 @@ export const adminNav: NavItem[] = [
   { title: "Пользователи", href: "/admin/users" },
   { title: "Заказы", href: "/admin/orders" },
   { title: "Лицензии", href: "/admin/licenses" },
+  { title: "Лимиты", href: "/admin/limits" },
 ];
 
 export const siteLinks = {

@@ -3,6 +3,7 @@ import { config } from './config.js';
 import authPlugin from './plugins/auth.js';
 import authRoutes from './routes/auth.js';
 import deviceRoutes from './routes/device.js';
+import devicesRoutes from './routes/devices.js';
 import licensesRoutes from './routes/licenses.js';
 import ordersRoutes from './routes/orders.js';
 import adminRoutes from './routes/admin.js';
@@ -21,6 +22,7 @@ export async function buildApp() {
     api.register(authRoutes, { prefix: '/auth' });
     api.register(deviceRoutes, { prefix: '/auth' });
     api.register(licensesRoutes, { prefix: '/licenses' });
+    api.register(devicesRoutes, { prefix: '/devices' });
     api.register(ordersRoutes, { prefix: '/orders' });
     api.register(adminRoutes, { prefix: '/admin' });
   }, { prefix: '/api' });

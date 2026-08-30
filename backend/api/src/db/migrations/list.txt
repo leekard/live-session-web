@@ -1,2 +1,3 @@
 001_initial_schema.sql
 002_seed_admin.sql
+003_devices.sql

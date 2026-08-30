@@ -1,35 +1,7 @@
-import { FastifyPluginAsync, FastifyRequest, FastifyReply } from 'fastify';
+import { FastifyPluginAsync, FastifyRequest } from 'fastify';
 import { pool } from '../db/pool.js';
 import { requireUser, requireAdmin } from '../plugins/auth.js';
-
-/**
- * Resolve the caller identity:
- *  - Browser: JWT in cookie via requireUser -> { id }
- *  - Desktop: Bearer token with subject "dev:<deviceId>:<userId>" -> { id, deviceId }
- */
-async function identify(request: FastifyRequest, reply: FastifyReply): Promise<{ id: number; deviceId?: string; role: string } | null> {
-  // Desktop: Bearer token with subject "dev:<deviceId>:<userId>".
-  const authz = request.headers.authorization;
-  if (authz && authz.startsWith('Bearer ')) {
-    try {
-      const payload = request.server.jwt.verify<{ sub: string; role: string }>(authz.slice(7));
-      if (payload.sub && payload.sub.startsWith('dev:')) {
-        const [, deviceId, userId] = payload.sub.split(':');
-        const id = Number(userId);
-        if (!Number.isInteger(id)) return null;
-        return { id, deviceId, role: payload.role };
-      }
-      return null;
-    } catch {
-      return null;
-    }
-  }
-
-  // Browser: JWT in cookie via requireUser -> { id }.
-  const cookieUser = await requireUser(request, reply);
-  if (cookieUser) return { id: cookieUser.id, role: cookieUser.role };
-  return null;
-}
+import { identify, enforceDeviceLimit } from './identity.js';
 
 const licensesRoutes: FastifyPluginAsync = async (app) => {
   // Desktop: activate a license key bound to a device.
@@ -57,6 +29,12 @@ const licensesRoutes: FastifyPluginAsync = async (app) => {
     // Already activated on another device?
     if (lic.device_id && lic.device_id !== devId) {
       return reply.code(409).send({ ok: false, error: 'DEVICE_CONFLICT', message: 'License already activated on another device' });
+    }
+
+    // Enforce per-plan active device limit.
+    const limit = await enforceDeviceLimit(identity.id, lic.plan, { excludeDeviceId: devId });
+    if (!limit.ok) {
+      return reply.code(409).send({ ok: false, error: 'DEVICE_LIMIT', message: 'Active device limit reached for this plan' });
     }
 
     await pool.query(
