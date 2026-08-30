@@ -9,8 +9,12 @@ export async function me(cookie: string | undefined): Promise<User | null> {
     headers: { cookie },
     cache: "no-store",
   });
-  if (!res.ok) return null;
+  if (!res.ok) {
+    console.error("[me] NOT OK status=", res.status, "cookieLen=", cookie.length, "backend=", backendUrl);
+    return null;
+  }
   const body = await res.json();
+  console.error("[me] status=", res.status, "bodyOk=", body?.ok, "user=", body?.user?.email || "NULL", "error=", body?.error || body?.message || "none");
   return body.ok ? (body.user as User) : null;
 }
 
