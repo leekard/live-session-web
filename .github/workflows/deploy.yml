@@ -27,6 +27,7 @@ jobs:
             WEB_ORIGIN=http://${{ secrets.DEPLOY_HOST }}
             COOKIE_NAME=livesession_auth
             EOF
+            docker compose build --no-cache sync
             docker compose up -d --build --remove-orphans
             echo '--- waiting for services to settle ---'
             sleep 25
