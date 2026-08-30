@@ -28,11 +28,19 @@ jobs:
             COOKIE_NAME=livesession_auth
             EOF
             docker compose up -d --build --remove-orphans
-            echo '--- deploy diagnostics ---'
-            docker ps --filter "name=live-session" --format '{{.Names}}: {{.Status}}'
-            echo '--- port 80/443 listeners ---'
-            (ss -ltnp 2>/dev/null | grep -E ':(80|443)\b') || echo 'no 80/443 listener'
-            echo '--- firewall status ---'
-            if command -v ufw >/dev/null 2>&1; then ufw status verbose || true; else echo 'no ufw'; fi
-            echo '--- open port 80 if ufw present ---'
-            if command -v ufw >/dev/null 2>&1; then ufw allow 80/tcp || true; fi
+            echo '--- waiting for services to settle ---'
+            sleep 25
+            echo '--- container status ---'
+            docker ps -a --filter "name=live-session" --format '{{.Names}}: {{.Status}}'
+            echo '--- sync logs ---'
+            docker logs --tail 40 live-session-sync 2>&1 || true
+            echo '--- nginx logs ---'
+            docker logs --tail 40 live-session-nginx 2>&1 || true
+            echo '--- api logs ---'
+            docker logs --tail 20 live-session-api 2>&1 || true
+            echo '--- web logs ---'
+            docker logs --tail 20 live-session-web 2>&1 || true
+            echo '--- listeners ---'
+            (ss -ltnp 2>/dev/null | grep -E ':(80|443|8080|8081)\b') || echo 'none of 80/443/8080/8081'
+            echo '--- iptables nat/ports sample ---'
+            (iptables -L -n 2>/dev/null | grep -E 'DROP|REJECT|ACCEPT.*(80|443)' | head -20) || echo 'no iptables access'
