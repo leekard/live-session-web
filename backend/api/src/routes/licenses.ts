@@ -1,4 +1,5 @@
 import { FastifyPluginAsync, FastifyRequest } from 'fastify';
+import { randomBytes } from 'node:crypto';
 import { pool } from '../db/pool.js';
 import { requireUser, requireAdmin } from '../plugins/auth.js';
 import { identify, enforceDeviceLimit } from './identity.js';
@@ -84,6 +85,39 @@ const licensesRoutes: FastifyPluginAsync = async (app) => {
       `SELECT l.*, u.email FROM licenses l JOIN users u ON u.id = l.user_id ORDER BY l.id DESC`
     );
     return reply.send({ ok: true, licenses: res.rows });
+  });
+
+  // Admin: issue a license to a user.
+  app.post<{ Body: { userId?: number; email?: string; plan?: string; months?: number } }>('/', async (request, reply) => {
+    const admin = await requireAdmin(request, reply);
+    if (!admin) return;
+    const plan = request.body?.plan;
+    if (!['basic', 'pro', 'team', 'free'].includes(plan || '')) {
+      return reply.code(400).send({ ok: false, error: 'VALIDATION', message: 'plan must be basic|pro|team|free' });
+    }
+
+    let userId = request.body?.userId;
+    if (!userId && request.body?.email) {
+      const u = await pool.query('SELECT id FROM users WHERE email = $1', [request.body.email]);
+      if (u.rowCount === 0) return reply.code(404).send({ ok: false, error: 'USER_NOT_FOUND' });
+      userId = u.rows[0].id;
+    }
+    if (!userId || Number.isNaN(Number(userId))) {
+      return reply.code(400).send({ ok: false, error: 'VALIDATION', message: 'userId or email required' });
+    }
+    const userExists = await pool.query('SELECT id FROM users WHERE id = $1', [Number(userId)]);
+    if (userExists.rowCount === 0) return reply.code(404).send({ ok: false, error: 'USER_NOT_FOUND' });
+
+    const months = request.body?.months ? Math.max(1, Math.floor(request.body.months)) : 12;
+    const expiresAt = new Date();
+    expiresAt.setMonth(expiresAt.getMonth() + months);
+    const licenseKey = 'LS-' + randomBytes(6).toString('hex').toUpperCase();
+
+    const res = await pool.query(
+      'INSERT INTO licenses (user_id, plan, status, license_key, expires_at) VALUES ($1, $2, $3, $4, $5) RETURNING *',
+      [Number(userId), plan, 'active', licenseKey, expiresAt]
+    );
+    return reply.code(201).send({ ok: true, license: res.rows[0] });
   });
 
   // Admin: revoke / reactivate a license.

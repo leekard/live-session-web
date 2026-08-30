@@ -58,6 +58,21 @@ export async function adminUsers(cookie: string | undefined): Promise<AdminUser[
   return body.ok ? (body.users as AdminUser[]) : [];
 }
 
+export async function adminIssueLicense(
+  cookie: string | undefined,
+  body: { userId: number; plan: string; months?: number }
+): Promise<{ ok: boolean; error?: string; license?: License }> {
+  if (!cookie) return { ok: false, error: "UNAUTHORIZED" };
+  const res = await fetch(`${backendUrl}/api/licenses`, {
+    method: "POST",
+    headers: { "content-type": "application/json", "x-auth-token": cookie },
+    body: JSON.stringify(body),
+    cache: "no-store",
+  });
+  const data = await res.json();
+  return { ok: data.ok === true, error: data.error, license: data.license };
+}
+
 export async function adminLicenses(cookie: string | undefined): Promise<License[]> {
   if (!cookie) return [];
   const res = await fetch(`${backendUrl}/api/licenses`, {

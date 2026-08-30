@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { requireAdmin } from "@/shared/lib/auth";
 import { adminLicenses, adminUsers } from "@/shared/api/client";
-import { setLicenseStatus } from "./actions";
+import { issueLicense, setLicenseStatus } from "./actions";
 import { Badge, Button, Card, CardContent, CardHeader, CardTitle } from "@/shared/ui";
 
 export const metadata: Metadata = {
@@ -27,6 +27,61 @@ export default async function AdminLicensesPage() {
 
   return (
     <div className="space-y-6">
+      <Card>
+        <CardHeader>
+          <CardTitle>Выдать лицензию</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <form action={issueLicense} className="flex flex-wrap items-end gap-4">
+            <label className="flex flex-col gap-1 text-sm text-zinc-400">
+              Пользователь
+              <select
+                name="userId"
+                required
+                className="h-10 rounded-md border border-border-subtle bg-card px-3 text-zinc-100"
+              >
+                {users.map((u) => (
+                  <option key={u.id} value={u.id}>
+                    {u.email}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="flex flex-col gap-1 text-sm text-zinc-400">
+              Тариф
+              <select
+                name="plan"
+                defaultValue="pro"
+                className="h-10 rounded-md border border-border-subtle bg-card px-3 text-zinc-100"
+              >
+                {(Object.keys(planLabel) as (keyof typeof planLabel)[]).map((p) => (
+                  <option key={p} value={p}>
+                    {planLabel[p]}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="flex flex-col gap-1 text-sm text-zinc-400">
+              Месяцев
+              <select
+                name="months"
+                defaultValue="12"
+                className="h-10 rounded-md border border-border-subtle bg-card px-3 text-zinc-100"
+              >
+                {[1, 3, 6, 12].map((m) => (
+                  <option key={m} value={m}>
+                    {m}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <Button type="submit" size="sm">
+              Выдать
+            </Button>
+          </form>
+        </CardContent>
+      </Card>
+
       <Card>
         <CardHeader>
           <CardTitle>Лицензии ({licenses.length})</CardTitle>
