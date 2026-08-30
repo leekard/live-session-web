@@ -13,7 +13,7 @@ export async function setLicenseStatus(id: number, status: "active" | "revoked" 
 
   const res = await fetch(`${backendUrl}/api/licenses/${id}`, {
     method: "PATCH",
-    headers: { "content-type": "application/json", cookie },
+    headers: { "content-type": "application/json", "x-auth-token": cookie },
     body: JSON.stringify({ status }),
     cache: "no-store",
   });
@@ -34,7 +34,7 @@ export async function issueLicense(formData: FormData) {
 
   const res = await fetch(`${backendUrl}/api/licenses`, {
     method: "POST",
-    headers: { "content-type": "application/json", cookie },
+    headers: { "content-type": "application/json", "x-auth-token": cookie },
     body: JSON.stringify({ userId, plan, months }),
     cache: "no-store",
   });
