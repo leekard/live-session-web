@@ -47,9 +47,15 @@ jobs:
             docker logs --tail 20 live-session-web 2>&1 || true
             echo '--- listeners ---'
             (ss -ltnp 2>/dev/null | grep -E ':(80|443|8080|8081)\b') || echo 'none of 80/443/8080/8081'
-            echo '--- iptables nat/ports sample ---'
-            (iptables -L -n 2>/dev/null | grep -E 'DROP|REJECT|ACCEPT.*(80|443)' | head -20) || echo 'no iptables access'
-            echo '--- open port 80 (tcp) if iptables present ---'
-            (command -v iptables >/dev/null 2>&1 && iptables -C INPUT -p tcp --dport 80 -j ACCEPT 2>/dev/null || iptables -I INPUT -p tcp --dport 80 -j ACCEPT 2>/dev/null) || echo 'no iptables'
-            echo '--- open port 80 if nftables present ---'
-            (command -v nft >/dev/null 2>&1 && nft add rule inet filter input tcp dport 80 accept 2>/dev/null) || echo 'no nft'
+            echo '--- iptables sample ---'
+            (iptables -L -n 2>/dev/null | grep -E 'dport 80|Status' | head -10) || true
+            echo '--- persistent firewall: allow port 80 via ufw ---'
+            if command -v ufw >/dev/null 2>&1; then
+              ufw allow 80/tcp || true
+              ufw enable || true
+              echo '--- ufw status ---'
+              ufw status verbose || true
+            else
+              echo 'ufw not present; add ephemeral iptables rule instead'
+              iptables -I INPUT -p tcp --dport 80 -j ACCEPT 2>/dev/null || true
+            fi
