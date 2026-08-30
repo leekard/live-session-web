@@ -177,6 +177,51 @@ const deviceRoutes: FastifyPluginAsync = async (app) => {
       })),
     });
   });
+
+  // Desktop: auto-bind the account's active license to this device (no key).
+  // The license is account-bound; the desktop simply claims it for this device
+  // as long as the per-plan active device limit has not been reached.
+  app.post('/device/activate', async (request, reply) => {
+    const identity = await identify(request, reply);
+    if (!identity || !identity.deviceId) return reply.code(401).send({ ok: false, error: 'UNAUTHORIZED' });
+
+    // Latest active (not revoked/expired) license belonging to this account.
+    const licRes = await pool.query(
+      `SELECT * FROM licenses
+       WHERE user_id = $1 AND status = 'active' AND (expires_at IS NULL OR expires_at > now())
+       ORDER BY id DESC LIMIT 1`,
+      [identity.id]
+    );
+    if (licRes.rowCount === 0) {
+      return reply.code(404).send({ ok: false, error: 'NO_LICENSE', message: 'No active license on this account' });
+    }
+    const lic = licRes.rows[0];
+
+    if (lic.device_id && lic.device_id === identity.deviceId) {
+      // Already active on this device.
+      return reply.send({ ok: true, activated: false, license: { id: lic.id, plan: lic.plan, status: lic.status, expiresAt: lic.expires_at } });
+    }
+    if (lic.device_id && lic.device_id !== identity.deviceId) {
+      return reply.code(409).send({ ok: false, error: 'DEVICE_CONFLICT', message: 'License already activated on another device' });
+    }
+
+    // Enforce per-plan active device limit.
+    const limit = await enforceDeviceLimit(identity.id, lic.plan, { excludeDeviceId: identity.deviceId });
+    if (!limit.ok) {
+      return reply.code(409).send({ ok: false, error: 'DEVICE_LIMIT', message: 'Active device limit reached for this plan' });
+    }
+
+    await pool.query(
+      'UPDATE licenses SET device_id = $1, activated_at = now(), status = $2 WHERE id = $3',
+      [identity.deviceId, 'active', lic.id]
+    );
+
+    return reply.send({
+      ok: true,
+      activated: true,
+      license: { id: lic.id, plan: lic.plan, status: 'active', expiresAt: lic.expires_at },
+    });
+  });
 };
 
 export default deviceRoutes;
