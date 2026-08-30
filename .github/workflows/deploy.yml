@@ -47,15 +47,9 @@ jobs:
             docker logs --tail 20 live-session-web 2>&1 || true
             echo '--- listeners ---'
             (ss -ltnp 2>/dev/null | grep -E ':(80|443|8080|8081)\b') || echo 'none of 80/443/8080/8081'
-            echo '--- iptables sample ---'
-            (iptables -L -n 2>/dev/null | grep -E 'dport 80|Status' | head -10) || true
-            echo '--- persistent firewall: allow port 80 via ufw ---'
-            if command -v ufw >/dev/null 2>&1; then
-              ufw allow 80/tcp || true
-              ufw enable || true
-              echo '--- ufw status ---'
-              ufw status verbose || true
-            else
-              echo 'ufw not present; add ephemeral iptables rule instead'
-              iptables -I INPUT -p tcp --dport 80 -j ACCEPT 2>/dev/null || true
-            fi
+            echo '--- firewall check (read-only) ---'
+            (iptables -L INPUT -n 2>/dev/null | grep -E '^Chain INPUT|^(policy |ACCEPT|DROP)' | head -5) || true
+            echo '--- boot persistence check ---'
+            systemctl is-enabled docker 2>/dev/null || echo 'docker autostart status unknown'
+            echo '--- port 80 proxy listener ---'
+            (ss -ltnp 2>/dev/null | grep -E ':(80|443)\b') || echo 'none of 80/443'
