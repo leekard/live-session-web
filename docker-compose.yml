@@ -8,6 +8,10 @@ services:
     restart: unless-stopped
     ports:
       - "80:80"
+      - "8443:8443"
+    volumes:
+      - ./certbot/webroot:/var/www/certbot
+      - ./certbot/letsencrypt:/etc/letsencrypt
     depends_on:
       - web
       - api
