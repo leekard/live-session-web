@@ -1,14 +1,105 @@
 services:
-  live-session-web:
+  nginx:
+    build:
+      context: .
+      dockerfile: deploy/nginx/Dockerfile
+    image: live-session-nginx:latest
+    container_name: live-session-nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    depends_on:
+      - web
+      - api
+      - sync
+
+  web:
     build: .
     image: live-session-web:latest
     container_name: live-session-web
     restart: unless-stopped
-    ports:
-      - "8080:3000"
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      HOSTNAME: 0.0.0.0
+      BACKEND_URL: http://api:3001
+      COOKIE_NAME: ${COOKIE_NAME:-livesession_auth}
+    depends_on:
+      - api
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://127.0.0.1:3000/"]
       interval: 30s
       timeout: 5s
       retries: 3
       start_period: 10s
+
+  api:
+    build:
+      context: ./backend/api
+    image: live-session-api:latest
+    container_name: live-session-api
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      PORT: 3001
+      JWT_SECRET: ${JWT_SECRET:-change-me-to-a-long-random-string}
+      JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-7d}
+      DATABASE_URL: postgres://livesession:${POSTGRES_PASSWORD:-livesession}@db:5432/livesession
+      COOKIE_NAME: ${COOKIE_NAME:-livesession_auth}
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-admin@livesession.local}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-admin123}
+      DEVICE_CODE_TTL_MS: ${DEVICE_CODE_TTL_MS:-300000}
+      WEB_ORIGIN: ${WEB_ORIGIN:-http://151.245.217.113}
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:3001/api/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+
+  sync:
+    build:
+      context: ./backend/sync
+    image: live-session-sync:latest
+    container_name: live-session-sync
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      WS_HOST: 0.0.0.0
+      WS_PORT: 8080
+      HTTP_PORT: 8081
+      SESSION_TTL_MS: 7200000
+      PLAYHEAD_THROTTLE_MS: 33
+      PING_INTERVAL_MS: 30000
+      LOG_LEVEL: info
+      METRICS_ENABLED: "true"
+      HEALTH_ENABLED: "true"
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:8081/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 5s
+
+  db:
+    image: postgres:16-alpine
+    container_name: live-session-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: livesession
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-livesession}
+      POSTGRES_DB: livesession
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U livesession -d livesession"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+volumes:
+  db_data:

@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
-import { licenses, users } from "@/shared/mock/data";
+import { requireAdmin } from "@/shared/lib/auth";
+import { adminLicenses, adminUsers } from "@/shared/api/client";
+import { setLicenseStatus } from "./actions";
 import { Badge, Button, Card, CardContent, CardHeader, CardTitle } from "@/shared/ui";
 
 export const metadata: Metadata = {
@@ -19,7 +21,10 @@ const planLabel: Record<string, string> = {
   team: "Командный",
 };
 
-export default function AdminLicensesPage() {
+export default async function AdminLicensesPage() {
+  const { cookie } = await requireAdmin();
+  const [licenses, users] = await Promise.all([adminLicenses(cookie), adminUsers(cookie)]);
+
   return (
     <div className="space-y-6">
       <Card>
@@ -44,21 +49,31 @@ export default function AdminLicensesPage() {
                   <tr key={license.id}>
                     <td className="py-3 pr-4 text-zinc-50">{license.id}</td>
                     <td className="py-3 pr-4 text-zinc-400">
-                      {users.find((u) => u.id === license.userId)?.email ?? license.userId}
+                      {users.find((u) => u.id === license.user_id)?.email ?? String(license.user_id)}
                     </td>
-                    <td className="py-3 pr-4 text-zinc-400">{planLabel[license.plan]}</td>
+                    <td className="py-3 pr-4 text-zinc-400">{planLabel[license.plan] ?? license.plan}</td>
                     <td className="py-3 pr-4">
                       <Badge tone={statusTone[license.status]}>{license.status}</Badge>
                     </td>
                     <td className="py-3 pr-4 text-zinc-400">
-                      {license.expiresOn
-                        ? new Date(license.expiresOn).toLocaleDateString("ru-RU")
+                      {license.expires_at
+                        ? new Date(license.expires_at).toLocaleDateString("ru-RU")
                         : "—"}
                     </td>
                     <td className="py-3">
-                      <Button variant="outline" size="sm" disabled>
-                        Отозвать
-                      </Button>
+                      {license.status === "active" ? (
+                        <form action={setLicenseStatus.bind(null, license.id, "revoked")}>
+                          <Button type="submit" variant="outline" size="sm">
+                            Отозвать
+                          </Button>
+                        </form>
+                      ) : (
+                        <form action={setLicenseStatus.bind(null, license.id, "active")}>
+                          <Button type="submit" variant="outline" size="sm">
+                            Возобновить
+                          </Button>
+                        </form>
+                      )}
                     </td>
                   </tr>
                 ))}

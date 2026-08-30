@@ -19,4 +19,12 @@ jobs:
           script: |
             cd /opt/live-session-web
             git pull origin main
-            docker compose up -d --build
+            cat > .env <<'EOF'
+            JWT_SECRET=${{ secrets.JWT_SECRET }}
+            ADMIN_EMAIL=${{ secrets.ADMIN_EMAIL }}
+            ADMIN_PASSWORD=${{ secrets.ADMIN_PASSWORD }}
+            POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }}
+            WEB_ORIGIN=http://${{ secrets.DEPLOY_HOST }}
+            COOKIE_NAME=livesession_auth
+            EOF
+            docker compose up -d --build --remove-orphans

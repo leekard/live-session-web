@@ -1,5 +1,5 @@
-import { currentUser } from "@/shared/mock/data";
 import { Badge, Button, Card, CardContent, CardHeader, CardTitle } from "@/shared/ui";
+import { requireUser } from "@/shared/lib/auth";
 
 const planLabel: Record<string, string> = {
   free: "Бесплатный",
@@ -8,7 +8,9 @@ const planLabel: Record<string, string> = {
   team: "Командный",
 };
 
-export default function AccountPage() {
+export default async function AccountPage() {
+  const { user } = await requireUser();
+
   return (
     <div className="space-y-6">
       <Card>
@@ -17,25 +19,12 @@ export default function AccountPage() {
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-1">
-            <p className="text-sm font-medium text-zinc-500">Имя</p>
-            <p className="text-zinc-50">{currentUser.name}</p>
-          </div>
-          <div className="space-y-1">
             <p className="text-sm font-medium text-zinc-500">Email</p>
-            <p className="text-zinc-50">{currentUser.email}</p>
+            <p className="text-zinc-50">{user.email}</p>
           </div>
           <div className="space-y-1">
-            <p className="text-sm font-medium text-zinc-500">Текущий тариф</p>
-            <div className="flex items-center gap-2">
-              <p className="text-zinc-50">{planLabel[currentUser.plan]}</p>
-              <Badge tone="info">{currentUser.plan}</Badge>
-            </div>
-          </div>
-          <div className="space-y-1">
-            <p className="text-sm font-medium text-zinc-500">Зарегистрирован</p>
-            <p className="text-zinc-50">
-              {new Date(currentUser.createdAt).toLocaleDateString("ru-RU")}
-            </p>
+            <p className="text-sm font-medium text-zinc-500">Роль</p>
+            <Badge tone={user.role === "admin" ? "warning" : "neutral"}>{user.role}</Badge>
           </div>
           <Button href="/account/licenses" size="sm">
             Мои лицензии

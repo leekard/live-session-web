@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
-import { orders, users } from "@/shared/mock/data";
+import { requireAdmin } from "@/shared/lib/auth";
+import { adminOrders, adminUsers } from "@/shared/api/client";
 import { Badge, Card, CardContent, CardHeader, CardTitle } from "@/shared/ui";
 
 export const metadata: Metadata = {
@@ -20,7 +21,10 @@ const planLabel: Record<string, string> = {
   team: "Командный",
 };
 
-export default function AdminOrdersPage() {
+export default async function AdminOrdersPage() {
+  const { cookie } = await requireAdmin();
+  const [orders, users] = await Promise.all([adminOrders(cookie), adminUsers(cookie)]);
+
   return (
     <Card>
       <CardHeader>
@@ -44,17 +48,15 @@ export default function AdminOrdersPage() {
                 <tr key={order.id}>
                   <td className="py-3 pr-4 text-zinc-50">{order.id}</td>
                   <td className="py-3 pr-4 text-zinc-400">
-                    {users.find((u) => u.id === order.userId)?.email ?? order.userId}
+                    {users.find((u) => u.id === order.user_id)?.email ?? String(order.user_id)}
                   </td>
-                  <td className="py-3 pr-4 text-zinc-400">{planLabel[order.plan]}</td>
-                  <td className="py-3 pr-4 text-zinc-50">
-                    {order.amount.toLocaleString("ru-RU")} ₽
-                  </td>
+                  <td className="py-3 pr-4 text-zinc-400">{planLabel[order.plan] ?? order.plan}</td>
+                  <td className="py-3 pr-4 text-zinc-50">{Number(order.amount).toLocaleString("ru-RU")} ₽</td>
                   <td className="py-3 pr-4">
                     <Badge tone={statusTone[order.status]}>{order.status}</Badge>
                   </td>
                   <td className="py-3 text-zinc-400">
-                    {new Date(order.createdAt).toLocaleDateString("ru-RU")}
+                    {new Date(order.created_at).toLocaleDateString("ru-RU")}
                   </td>
                 </tr>
               ))}

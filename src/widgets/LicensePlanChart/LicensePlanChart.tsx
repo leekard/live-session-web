@@ -1,7 +1,6 @@
 "use client";
 
 import { Cell, Legend, Pie, PieChart, ResponsiveContainer, Tooltip } from "recharts";
-import { licenses } from "@/shared/mock/data";
 import type { PlanType } from "@/shared/mock/types";
 
 const planLabel: Record<PlanType, string> = {
@@ -18,10 +17,10 @@ const planColor: Record<PlanType, string> = {
   team: "#8a9ee0",
 };
 
-export function LicensePlanChart() {
+export function LicensePlanChart({ counts }: { counts?: Partial<Record<PlanType, number>> }) {
   const data = (Object.keys(planLabel) as PlanType[]).map((plan) => ({
     name: planLabel[plan],
-    value: licenses.filter((l) => l.plan === plan).length,
+    value: counts?.[plan] ?? 0,
     color: planColor[plan],
   }));
 

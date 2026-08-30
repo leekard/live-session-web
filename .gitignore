@@ -2,6 +2,7 @@
 
 # dependencies
 /node_modules
+**/node_modules/
 /.pnp
 .pnp.*
 .yarn/*
@@ -9,6 +10,10 @@
 !.yarn/plugins
 !.yarn/releases
 !.yarn/versions
+
+# backend build/test output
+**/dist/
+**/coverage/
 
 # testing
 /coverage
@@ -23,6 +28,8 @@
 # misc
 .DS_Store
 *.pem
+.idea/
+.vscode/
 
 # debug
 npm-debug.log*
@@ -32,6 +39,8 @@ yarn-error.log*
 
 # env files (can opt-in for committing if needed)
 .env*
+!.env.example
+!**/.env.example
 
 # vercel
 .vercel

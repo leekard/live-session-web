@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
-import { licenses, orders, users } from "@/shared/mock/data";
+import { requireAdmin } from "@/shared/lib/auth";
+import { adminStats, adminOrders, adminUsers } from "@/shared/api/client";
 import { LicensePlanChart } from "@/widgets";
 import { Button, Card, CardContent, CardHeader, CardTitle } from "@/shared/ui";
 
@@ -7,37 +8,26 @@ export const metadata: Metadata = {
   title: "Дашборд",
 };
 
-const stats = [
-  {
-    label: "Пользователи",
-    value: users.length,
-    href: "/admin/users",
-  },
-  {
-    label: "Активные лицензии",
-    value: licenses.filter((l) => l.status === "active").length,
-    href: "/admin/licenses",
-  },
-  {
-    label: "Заказы",
-    value: orders.length,
-    href: "/admin/orders",
-  },
-  {
-    label: "Доход",
-    value: `${orders
-      .filter((o) => o.status === "paid")
-      .reduce((sum, o) => sum + o.amount, 0)
-      .toLocaleString("ru-RU")} ₽`,
-    href: "/admin/orders",
-  },
-];
+export default async function AdminDashboardPage() {
+  const { cookie } = await requireAdmin();
+  const [stats, orders, users] = await Promise.all([
+    adminStats(cookie),
+    adminOrders(cookie),
+    adminUsers(cookie),
+  ]);
 
-export default function AdminDashboardPage() {
+  const activeLicenses = stats?.licensesByStatus.active ?? 0;
+  const statCards = [
+    { label: "Пользователи", value: stats?.users ?? 0, href: "/admin/users" },
+    { label: "Активные лицензии", value: activeLicenses, href: "/admin/licenses" },
+    { label: "Заказы", value: orders.length, href: "/admin/orders" },
+    { label: "Доход", value: `${(stats?.revenue ?? 0).toLocaleString("ru-RU")} ₽`, href: "/admin/orders" },
+  ];
+
   return (
     <div className="space-y-6">
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {stats.map((stat) => (
+        {statCards.map((stat) => (
           <Card key={stat.label}>
             <CardContent>
               <p className="text-sm font-medium text-zinc-400">{stat.label}</p>
@@ -55,7 +45,7 @@ export default function AdminDashboardPage() {
           <CardTitle>Типы используемых лицензий</CardTitle>
         </CardHeader>
         <CardContent>
-          <LicensePlanChart />
+          <LicensePlanChart counts={stats?.licensesByPlan} />
         </CardContent>
       </Card>
 
@@ -70,13 +60,11 @@ export default function AdminDashboardPage() {
                 <div>
                   <p className="font-medium text-zinc-50">{order.id}</p>
                   <p className="text-sm text-zinc-400">
-                    {users.find((u) => u.id === order.userId)?.email ?? order.userId} ·{" "}
-                    {new Date(order.createdAt).toLocaleDateString("ru-RU")}
+                    {users.find((u) => u.id === order.user_id)?.email ?? String(order.user_id)} ·{" "}
+                    {new Date(order.created_at).toLocaleDateString("ru-RU")}
                   </p>
                 </div>
-                <p className="font-semibold text-zinc-50">
-                  {order.amount.toLocaleString("ru-RU")} ₽
-                </p>
+                <p className="font-semibold text-zinc-50">{Number(order.amount).toLocaleString("ru-RU")} ₽</p>
               </div>
             ))}
           </div>
