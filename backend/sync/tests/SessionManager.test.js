@@ -83,6 +83,30 @@ describe('SessionManager', () => {
     expect(res.snapshot.nav.payload.trackCount).toBe(4);
   });
 
+  test('segments passthrough keeps name/text fields; cached for late joiners', () => {
+    const host = makeWs();
+    const { session } = manager.registerHost(host);
+
+    const segments = [
+      { id: 's1', name: 'Verse', text: 'First line of the verse', start: 0, end: 8, color: '#748bd5' },
+      { id: 's2', name: 'Chorus', text: 'Catchy chorus lyrics', start: 8, end: 16, color: '#ff832b' },
+    ];
+    manager.broadcastFromHost(session.sessionId, { type: 'segments', payload: segments });
+    manager.broadcastFromHost(session.sessionId, { type: 'track', payload: { name: 'A', bpm: 100, key: 'C', scale: 'Major', countIn: 4, fileCount: 1 } });
+
+    // Live client receives name/text intact
+    const live = makeWs();
+    manager.registerClient(live, session.sessionId);
+    expect(live.sent.find((m) => m.type === 'segments')).toBeUndefined(); // broadcast happened before join
+
+    // Late joiner gets the cached segments snapshot with name/text
+    const late = makeWs();
+    const res = manager.registerClient(late, session.sessionId);
+    expect(res.snapshot.segments.payload).toEqual(segments);
+    expect(res.snapshot.segments.payload[0].name).toBe('Verse');
+    expect(res.snapshot.segments.payload[0].text).toBe('First line of the verse');
+  });
+
   test('forwardToClient sends command to the host', () => {
     const host = makeWs();
     const { session } = manager.registerHost(host);

@@ -16,7 +16,14 @@
 // { type: "track",     payload: { name, bpm, key, scale, countIn, fileCount } }
 // { type: "mixer",     payload: { channels: [{ id, file, volume, pan, solo, mute, outputPair, group }] } }
 // { type: "playback",  payload: { playing, position, duration, beat, countInBeat } }
-// { type: "segments",  payload: [{ id, name, start, end, color }] }
+// { type: "segments",  payload: [{ id, name, text, start, end, color }] }
+//   Segment fields:
+//     id    (string) — stable segment identifier
+//     name  (string) — short segment label (e.g. "Verse", "Chorus")
+//     text  (string) — verbatim segment text/lyrics shown to controllers
+//     start (number) — start time in seconds
+//     end   (number) — end time in seconds
+//     color (string) — hex/CSS color for the segment block
 // { type: "groups",    payload: [{ id, name, icon }] }
 // { type: "nav",       payload: { blockIndex, trackIndex, trackCount, autoAdvance } }
 // { type: "error",     payload: { code, message } }
