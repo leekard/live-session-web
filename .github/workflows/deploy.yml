@@ -34,6 +34,10 @@ jobs:
             docker ps -a --filter "name=live-session" --format '{{.Names}}: {{.Status}}'
             echo '--- sync logs ---'
             docker logs --tail 40 live-session-sync 2>&1 || true
+            echo '--- sync image info ---'
+            docker images live-session-sync --format '{{.ID}} {{.CreatedSince}}'
+            echo '--- inspect ws in sync image ---'
+            docker run --rm --entrypoint sh live-session-sync:latest -c 'echo "ws:"; ls -d node_modules/ws 2>&1 | head; echo "---node_modules top---"; ls node_modules 2>/dev/null | head -30; echo "---pkg deps---"; node -e "const p=require(\"./package.json\");console.log(\"ws in deps:\",\"ws\" in (p.dependencies||{}));console.log(\"ws in devDeps:\",\"ws\" in (p.devDependencies||{}))"'
             echo '--- nginx logs ---'
             docker logs --tail 40 live-session-nginx 2>&1 || true
             echo '--- api logs ---'
