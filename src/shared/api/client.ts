@@ -6,22 +6,18 @@ const cookieName = process.env.COOKIE_NAME || "livesession_auth";
 export async function me(cookie: string | undefined): Promise<User | null> {
   if (!cookie) return null;
   const res = await fetch(`${backendUrl}/api/auth/me`, {
-    headers: { cookie },
+    headers: { "x-auth-token": cookie },
     cache: "no-store",
   });
-  if (!res.ok) {
-    console.error("[me] NOT OK status=", res.status, "cookieLen=", cookie.length, "backend=", backendUrl);
-    return null;
-  }
+  if (!res.ok) return null;
   const body = await res.json();
-  console.error("[me] status=", res.status, "bodyOk=", body?.ok, "user=", body?.user?.email || "NULL", "error=", body?.error || body?.message || "none");
   return body.ok ? (body.user as User) : null;
 }
 
 export async function myLicenses(cookie: string | undefined): Promise<License[]> {
   if (!cookie) return [];
   const res = await fetch(`${backendUrl}/api/licenses/me`, {
-    headers: { cookie },
+    headers: { "x-auth-token": cookie },
     cache: "no-store",
   });
   if (!res.ok) return [];
@@ -32,7 +28,7 @@ export async function myLicenses(cookie: string | undefined): Promise<License[]>
 export async function myOrders(cookie: string | undefined): Promise<Order[]> {
   if (!cookie) return [];
   const res = await fetch(`${backendUrl}/api/orders/me`, {
-    headers: { cookie },
+    headers: { "x-auth-token": cookie },
     cache: "no-store",
   });
   if (!res.ok) return [];
@@ -43,7 +39,7 @@ export async function myOrders(cookie: string | undefined): Promise<Order[]> {
 export async function myDevices(cookie: string | undefined): Promise<Device[]> {
   if (!cookie) return [];
   const res = await fetch(`${backendUrl}/api/devices`, {
-    headers: { cookie },
+    headers: { "x-auth-token": cookie },
     cache: "no-store",
   });
   if (!res.ok) return [];
@@ -54,7 +50,7 @@ export async function myDevices(cookie: string | undefined): Promise<Device[]> {
 export async function adminUsers(cookie: string | undefined): Promise<AdminUser[]> {
   if (!cookie) return [];
   const res = await fetch(`${backendUrl}/api/admin/users`, {
-    headers: { cookie },
+    headers: { "x-auth-token": cookie },
     cache: "no-store",
   });
   if (!res.ok) return [];
@@ -65,7 +61,7 @@ export async function adminUsers(cookie: string | undefined): Promise<AdminUser[
 export async function adminLicenses(cookie: string | undefined): Promise<License[]> {
   if (!cookie) return [];
   const res = await fetch(`${backendUrl}/api/licenses`, {
-    headers: { cookie },
+    headers: { "x-auth-token": cookie },
     cache: "no-store",
   });
   if (!res.ok) return [];
@@ -76,7 +72,7 @@ export async function adminLicenses(cookie: string | undefined): Promise<License
 export async function adminOrders(cookie: string | undefined): Promise<Order[]> {
   if (!cookie) return [];
   const res = await fetch(`${backendUrl}/api/orders`, {
-    headers: { cookie },
+    headers: { "x-auth-token": cookie },
     cache: "no-store",
   });
   if (!res.ok) return [];
@@ -87,7 +83,7 @@ export async function adminOrders(cookie: string | undefined): Promise<Order[]> 
 export async function adminStats(cookie: string | undefined): Promise<DashboardStats | null> {
   if (!cookie) return null;
   const res = await fetch(`${backendUrl}/api/orders/stats`, {
-    headers: { cookie },
+    headers: { "x-auth-token": cookie },
     cache: "no-store",
   });
   if (!res.ok) return null;
@@ -98,7 +94,7 @@ export async function adminStats(cookie: string | undefined): Promise<DashboardS
 export async function adminPlanLimits(cookie: string | undefined): Promise<PlanLimit[]> {
   if (!cookie) return [];
   const res = await fetch(`${backendUrl}/api/admin/plan-limits`, {
-    headers: { cookie },
+    headers: { "x-auth-token": cookie },
     cache: "no-store",
   });
   if (!res.ok) return [];

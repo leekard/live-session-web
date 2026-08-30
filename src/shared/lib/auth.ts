@@ -7,7 +7,6 @@ export async function getSession(): Promise<{ user: User | null; cookie: string 
   const store = await cookies();
   const cookie = store.get(cookieName)?.value;
   const user = await me(cookie);
-  console.error("[auth] getSession cookieName=", cookieName, "hasCookie=", !!cookie, "user=", user ? user.email : "NULL", "backend=", process.env.BACKEND_URL || "http://api:3001");
   return { user, cookie };
 }
 

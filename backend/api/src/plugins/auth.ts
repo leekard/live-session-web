@@ -29,6 +29,14 @@ const authPlugin: FastifyPluginAsync = async (app) => {
   await app.register(jwt, {
     secret: config.jwtSecret,
     cookie: { cookieName: config.cookieName, signed: false },
+    verify: {
+      extractToken: (request) => {
+        const header = request.headers['x-auth-token'];
+        if (typeof header === 'string' && header.length > 0) return header;
+        const cookieToken = (request as FastifyRequest).cookies?.[config.cookieName];
+        return cookieToken || undefined;
+      },
+    },
   });
 
   app.decorate('getAuthUser', async (request: FastifyRequest): Promise<{ id: number; role: string } | null> => {
