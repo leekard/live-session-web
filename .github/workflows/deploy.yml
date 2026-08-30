@@ -24,7 +24,7 @@ jobs:
             ADMIN_EMAIL=${{ secrets.ADMIN_EMAIL }}
             ADMIN_PASSWORD=${{ secrets.ADMIN_PASSWORD }}
             POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }}
-            WEB_ORIGIN=http://${{ secrets.DEPLOY_HOST }}
+            WEB_ORIGIN=https://${{ secrets.DEPLOY_HOST }}:8443
             COOKIE_NAME=livesession_auth
             EOF
             docker compose build --no-cache sync
