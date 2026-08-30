@@ -1,11 +1,10 @@
 "use client";
 
 import { Suspense, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { Button, Card, CardContent, CardHeader, CardTitle } from "@/shared/ui";
 
 function LoginInner() {
-  const router = useRouter();
   const searchParams = useSearchParams();
   const back = searchParams.get("back") || "/account";
   const [mode, setMode] = useState<"login" | "register">("login");
@@ -27,8 +26,7 @@ function LoginInner() {
       setError(body.message || body.error || "Ошибка");
       return;
     }
-    router.push(back);
-    router.refresh();
+    window.location.assign(back);
   }
 
   return (
