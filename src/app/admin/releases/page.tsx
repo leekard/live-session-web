@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import { requireAdmin } from "@/shared/lib/auth";
 import { adminReleases } from "@/shared/api/client";
-import { uploadRelease, publishRelease } from "./actions";
+import { publishRelease } from "./actions";
+import UploadForm from "./UploadForm";
 import { Badge, Button, Card, CardContent, CardHeader, CardTitle } from "@/shared/ui";
 
 export const metadata: Metadata = {
@@ -25,45 +26,7 @@ export default async function AdminReleasesPage() {
           <CardTitle>Загрузить установщик</CardTitle>
         </CardHeader>
         <CardContent>
-          <form
-            action={uploadRelease}
-            encType="multipart/form-data"
-            className="flex flex-wrap items-end gap-4"
-          >
-            <label className="flex flex-col gap-1 text-sm text-zinc-400">
-              Версия
-              <input
-                type="text"
-                name="version"
-                placeholder="1.0.8"
-                required
-                pattern="\d+(\.\d+){1,2}"
-                className="h-10 rounded-md border border-border-subtle bg-card px-3 text-zinc-100"
-              />
-            </label>
-            <label className="flex flex-col gap-1 text-sm text-zinc-400">
-              Заметки (необязательно)
-              <input
-                type="text"
-                name="notes"
-                placeholder="Что нового"
-                className="h-10 rounded-md border border-border-subtle bg-card px-3 text-zinc-100"
-              />
-            </label>
-            <label className="flex flex-col gap-1 text-sm text-zinc-400">
-              Файл (.exe)
-              <input
-                type="file"
-                name="file"
-                accept=".exe"
-                required
-                className="block w-72 text-sm text-zinc-400 file:mr-3 file:rounded-md file:border-0 file:bg-zinc-700 file:px-3 file:py-2 file:text-zinc-100 hover:file:bg-zinc-600"
-              />
-            </label>
-            <Button type="submit" size="sm">
-              Загрузить
-            </Button>
-          </form>
+          <UploadForm />
           <p className="mt-3 text-xs text-zinc-500">
             Загруженный установщик будет опубликован отдельной кнопкой. Версия должна быть новее текущей.
           </p>
