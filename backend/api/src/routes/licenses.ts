@@ -92,8 +92,8 @@ const licensesRoutes: FastifyPluginAsync = async (app) => {
     const admin = await requireAdmin(request, reply);
     if (!admin) return;
     const plan = request.body?.plan;
-    if (!['basic', 'pro', 'team', 'free'].includes(plan || '')) {
-      return reply.code(400).send({ ok: false, error: 'VALIDATION', message: 'plan must be basic|pro|team|free' });
+    if (!['basic', 'pro', 'team', 'founder', 'free'].includes(plan || '')) {
+      return reply.code(400).send({ ok: false, error: 'VALIDATION', message: 'plan must be basic|pro|team|founder|free' });
     }
 
     let userId = request.body?.userId;
@@ -109,8 +109,12 @@ const licensesRoutes: FastifyPluginAsync = async (app) => {
     if (userExists.rowCount === 0) return reply.code(404).send({ ok: false, error: 'USER_NOT_FOUND' });
 
     const months = request.body?.months ? Math.max(1, Math.floor(request.body.months)) : 12;
-    const expiresAt = new Date();
-    expiresAt.setMonth(expiresAt.getMonth() + months);
+    // Founder is a lifetime plan: no expiry.
+    let expiresAt: Date | null = null;
+    if (plan !== 'founder') {
+      expiresAt = new Date();
+      expiresAt.setMonth(expiresAt.getMonth() + months);
+    }
     const licenseKey = 'LS-' + randomBytes(6).toString('hex').toUpperCase();
 
     const res = await pool.query(

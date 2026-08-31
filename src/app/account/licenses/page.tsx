@@ -17,6 +17,7 @@ const planLabel: Record<string, string> = {
   basic: "Базовый",
   pro: "Профессиональный",
   team: "Командный",
+  founder: "Founder",
 };
 
 export default async function AccountLicensesPage() {

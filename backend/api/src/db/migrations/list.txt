@@ -2,3 +2,4 @@
 002_seed_admin.sql
 003_devices.sql
 004_releases.sql
+005_founder.sql
