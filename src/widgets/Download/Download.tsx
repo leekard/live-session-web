@@ -1,5 +1,6 @@
 import { siteConfig } from "@/shared/config/site";
 import { Button, Container } from "@/shared/ui";
+import { DownloadButton } from "./DownloadButton";
 
 export function Download() {
   return (
@@ -14,9 +15,7 @@ export function Download() {
             зависимости от VC++ Redistributable.
           </p>
           <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-            <Button href={siteConfig.downloadUrl} size="lg">
-              Скачать установщик v{siteConfig.appVersion}
-            </Button>
+            <DownloadButton />
             <Button href="/#requirements" variant="outline" size="lg">
               Системные требования
             </Button>

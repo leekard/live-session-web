@@ -4,7 +4,7 @@ export const siteConfig = {
     "LiveSession — Windows-приложение для репетиций и живых сессий: загрузка аудиодорожек, совмещённая волна с сеткой тактов, синтезируемый метроном и независимый вывод каждого канала на свою пару выходов аудиоустройства.",
   url: "https://livesession.example.com",
   ogImage: "/icon.png",
-  appVersion: "1.0.7",
+  appVersion: "1.1.0",
   platform: "Windows",
   downloadUrl: "/#pricing",
   links: {
