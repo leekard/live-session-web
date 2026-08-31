@@ -194,7 +194,7 @@ const deviceRoutes: FastifyPluginAsync = async (app) => {
     );
     if (licRes.rowCount === 0) {
       const inactiveRes = await pool.query(
-        `SELECT status, expires_at FROM licenses
+        `SELECT status, expires_at, plan FROM licenses
          WHERE user_id = $1
          ORDER BY id DESC LIMIT 1`,
         [identity.id]
@@ -209,9 +209,21 @@ const deviceRoutes: FastifyPluginAsync = async (app) => {
           error: 'LICENSE_EXPIRED',
           message: 'License has expired',
           expiresAt: inactive.expires_at,
+          plan: inactive.plan,
         });
       }
-      return reply.code(404).send({ ok: false, error: 'NO_LICENSE', message: 'No active license on this account' });
+      // Desktop shows the "activate trial" offer only when the account has
+      // never used its one-time trial license.
+      const trialRes = await pool.query(
+        `SELECT id FROM licenses WHERE user_id = $1 AND plan = 'free' LIMIT 1`,
+        [identity.id]
+      );
+      return reply.code(404).send({
+        ok: false,
+        error: 'NO_LICENSE',
+        message: 'No active license on this account',
+        trialUsed: (trialRes.rowCount ?? 0) > 0,
+      });
     }
     const lic = licRes.rows[0];
 
@@ -220,7 +232,16 @@ const deviceRoutes: FastifyPluginAsync = async (app) => {
       return reply.send({ ok: true, activated: false, license: { id: lic.id, plan: lic.plan, status: lic.status, expiresAt: lic.expires_at } });
     }
     if (lic.device_id && lic.device_id !== identity.deviceId) {
-      return reply.code(409).send({ ok: false, error: 'DEVICE_CONFLICT', message: 'License already activated on another device' });
+      const trialRes = await pool.query(
+        `SELECT id FROM licenses WHERE user_id = $1 AND plan = 'free' LIMIT 1`,
+        [identity.id]
+      );
+      return reply.code(409).send({
+        ok: false,
+        error: 'DEVICE_CONFLICT',
+        message: 'License already activated on another device',
+        trialUsed: (trialRes.rowCount ?? 0) > 0,
+      });
     }
 
     // Enforce per-plan active device limit.
@@ -251,7 +272,7 @@ const deviceRoutes: FastifyPluginAsync = async (app) => {
       [identity.id]
     );
     if ((usedRes.rowCount ?? 0) > 0) {
-      return reply.code(409).send({ ok: false, error: 'TRIAL_ALREADY_USED', message: 'Trial period has already been used' });
+      return reply.code(409).send({ ok: false, error: 'TRIAL_ALREADY_USED', message: 'Trial period has already been used', trialUsed: true });
     }
 
     const limit = await enforceDeviceLimit(identity.id, 'free', { excludeDeviceId: identity.deviceId });
