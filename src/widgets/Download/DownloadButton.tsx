@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import { Button } from "@/shared/ui";
-import { siteConfig } from "@/shared/config/site";
 
 type Latest = {
   ok: boolean;
@@ -26,12 +25,18 @@ export function DownloadButton() {
     };
   }, []);
 
-  const href = release?.url ?? siteConfig.downloadUrl;
-  const version = release?.version ?? siteConfig.appVersion;
+  // Пока актуальный релиз не опубликован — кнопка неактивна (не ведёт на тарифы).
+  if (!release) {
+    return (
+      <Button size="lg" disabled>
+        Скоро
+      </Button>
+    );
+  }
 
   return (
-    <Button href={href} size="lg">
-      Скачать установщик v{version}
+    <Button href={release.url} size="lg">
+      Скачать установщик v{release.version}
     </Button>
   );
 }
