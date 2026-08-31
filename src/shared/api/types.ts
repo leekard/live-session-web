@@ -53,3 +53,14 @@ export type PlanLimit = {
   device_limit: number;
   updated_at: string;
 };
+
+export type Release = {
+  id: number;
+  version: string;
+  file_name: string;
+  file_size: number;
+  notes: string | null;
+  published: boolean;
+  created_at: string;
+  published_at: string | null;
+};

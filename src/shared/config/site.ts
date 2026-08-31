@@ -38,6 +38,7 @@ export const adminNav: NavItem[] = [
   { title: "Заказы", href: "/admin/orders" },
   { title: "Лицензии", href: "/admin/licenses" },
   { title: "Лимиты", href: "/admin/limits" },
+  { title: "Релизы", href: "/admin/releases" },
 ];
 
 export const siteLinks = {

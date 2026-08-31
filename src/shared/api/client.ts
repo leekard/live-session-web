@@ -1,4 +1,4 @@
-import type { AdminUser, DashboardStats, Device, License, Order, PlanLimit, User } from "./types";
+import type { AdminUser, DashboardStats, Device, License, Order, PlanLimit, Release, User } from "./types";
 
 const backendUrl = process.env.BACKEND_URL || "http://api:3001";
 const cookieName = process.env.COOKIE_NAME || "livesession_auth";
@@ -115,6 +115,17 @@ export async function adminPlanLimits(cookie: string | undefined): Promise<PlanL
   if (!res.ok) return [];
   const body = await res.json();
   return body.ok ? (body.limits as PlanLimit[]) : [];
+}
+
+export async function adminReleases(cookie: string | undefined): Promise<Release[]> {
+  if (!cookie) return [];
+  const res = await fetch(`${backendUrl}/api/admin/releases`, {
+    headers: { "x-auth-token": cookie },
+    cache: "no-store",
+  });
+  if (!res.ok) return [];
+  const body = await res.json();
+  return body.ok ? (body.releases as Release[]) : [];
 }
 
 export { cookieName };

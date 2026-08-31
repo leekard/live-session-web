@@ -13,6 +13,8 @@ export interface Config {
   adminPassword: string;
   deviceCodeTtlMs: number;
   webOrigin: string;
+  downloadsDir: string;
+  syncUrl: string;
 }
 
 function required(name: string, fallback?: string): string {
@@ -36,6 +38,8 @@ export function loadConfig(): Config {
     adminPassword: process.env.ADMIN_PASSWORD || 'admin123',
     deviceCodeTtlMs: parseInt(process.env.DEVICE_CODE_TTL_MS || '300000', 10),
     webOrigin: process.env.WEB_ORIGIN || '*',
+    downloadsDir: process.env.DOWNLOADS_DIR || './downloads',
+    syncUrl: process.env.SYNC_URL || 'http://sync:8081',
   };
 }
 

@@ -54,6 +54,10 @@ services:
       ADMIN_PASSWORD: ${ADMIN_PASSWORD:-admin123}
       DEVICE_CODE_TTL_MS: ${DEVICE_CODE_TTL_MS:-300000}
       WEB_ORIGIN: ${WEB_ORIGIN:-https://151.245.217.113:8443}
+      DOWNLOADS_DIR: /data/downloads
+      SYNC_URL: http://sync:8081
+    volumes:
+      - releases_data:/data/downloads
     depends_on:
       db:
         condition: service_healthy
@@ -107,3 +111,4 @@ services:
 
 volumes:
   db_data:
+  releases_data:
