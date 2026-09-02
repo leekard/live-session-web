@@ -1,4 +1,5 @@
 import { FastifyPluginAsync } from 'fastify';
+import { MultipartFile } from '@fastify/multipart';
 import { createWriteStream } from 'node:fs';
 import { mkdir, stat } from 'node:fs/promises';
 import path from 'node:path';
@@ -9,16 +10,6 @@ import { config } from '../config.js';
 import { compareVersions, isVersionValid } from '../lib/semver.js';
 
 // Admin: manual list of releases.
-// Extract a scalar string from a multipart field (non-file part).
-function fieldValue(field: unknown): string {
-  if (Array.isArray(field)) return fieldValue(field[0]);
-  if (field && typeof field === 'object' && 'value' in field) {
-    const v = (field as { value: unknown }).value;
-    return typeof v === 'string' || typeof v === 'number' ? String(v) : '';
-  }
-  return '';
-}
-
 async function listReleases() {
   const res = await pool.query(
     'SELECT id, version, file_name, file_size, notes, published, created_at, published_at FROM releases ORDER BY id DESC'
@@ -60,28 +51,40 @@ const adminReleasesRoutes: FastifyPluginAsync = async (app) => {
     const admin = await requireAdmin(request, reply);
     if (!admin) return;
 
-    const data = await request.file();
-    if (!data) {
-      return reply.code(400).send({ ok: false, error: 'VALIDATION', message: 'multipart file required' });
+    // Consume all parts in stream order so non-file fields (e.g. notes) are
+    // captured regardless of whether they appear before or after the file.
+    let version = '';
+    let notes = '';
+    let installer: MultipartFile | undefined;
+
+    for await (const part of request.parts()) {
+      if (part.type === 'file') {
+        installer = part;
+      } else if (part.fieldname === 'version') {
+        version = String(part.value ?? '').trim();
+      } else if (part.fieldname === 'notes') {
+        notes = String(part.value ?? '').trim();
+      }
     }
 
-    const version = String(fieldValue(data.fields.version) || '').trim();
-    const notes = String(fieldValue(data.fields.notes) || '').trim();
+    if (!installer) {
+      return reply.code(400).send({ ok: false, error: 'VALIDATION', message: 'multipart file required' });
+    }
     if (!version || !isVersionValid(version)) {
-      data.file.resume();
+      installer.file.resume();
       return reply.code(400).send({ ok: false, error: 'VALIDATION', message: 'version (x.y[.z]) required' });
     }
-    const originalName = data.filename || '';
+    const originalName = installer.filename || '';
     const ext = path.extname(originalName).toLowerCase();
     if (ext !== '.exe') {
-      data.file.resume();
+      installer.file.resume();
       return reply.code(400).send({ ok: false, error: 'VALIDATION', message: 'only .exe installers are allowed' });
     }
 
     // Enforce that the new version is newer than the latest recorded release.
     const existing = await pool.query('SELECT version FROM releases ORDER BY id DESC LIMIT 1');
     if ((existing.rowCount ?? 0) > 0 && compareVersions(version, existing.rows[0].version) <= 0) {
-      data.file.resume();
+      installer.file.resume();
       return reply.code(409).send({
         ok: false,
         error: 'VERSION_NOT_NEWER',
@@ -95,7 +98,7 @@ const adminReleasesRoutes: FastifyPluginAsync = async (app) => {
 
     try {
       await mkdir(config.downloadsDir, { recursive: true });
-      await pipeline(data.file, createWriteStream(filePath));
+      await pipeline(installer.file, createWriteStream(filePath));
     } catch (err) {
       console.error('write installer failed:', err);
       return reply.code(500).send({ ok: false, error: 'WRITE_FAILED' });
