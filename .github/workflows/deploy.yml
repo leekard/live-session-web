@@ -17,8 +17,11 @@ jobs:
           username: ${{ secrets.DEPLOY_USER }}
           key: ${{ secrets.DEPLOY_SSH_KEY }}
           script: |
+            set -euo pipefail
             cd /opt/live-session-web
-            git pull origin main
+            git fetch origin main
+            git reset --hard origin/main
+            echo "deployed commit: $(git rev-parse --short HEAD)"
             cat > .env <<'EOF'
             JWT_SECRET=${{ secrets.JWT_SECRET }}
             ADMIN_EMAIL=${{ secrets.ADMIN_EMAIL }}

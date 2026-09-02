@@ -36,9 +36,7 @@ export function PageShell({ title, nav, children }: PageShellProps) {
         <aside className="md:w-56 md:shrink-0">
           <nav className="flex flex-col gap-1">
             {nav.map((item) => {
-              const isActive =
-                item.href === pathname ||
-                (item.href !== "/" && pathname.startsWith(item.href + "/"));
+              const isActive = item.href === pathname;
               return (
                 <Link
                   key={item.href}
