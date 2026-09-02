@@ -7,7 +7,7 @@ export type User = {
 export type License = {
   id: number;
   user_id: number;
-  plan: "free" | "basic" | "pro" | "team";
+  plan: "free" | "basic" | "pro" | "team" | "founder";
   status: "active" | "expired" | "revoked";
   license_key?: string;
   device_id: string | null;
