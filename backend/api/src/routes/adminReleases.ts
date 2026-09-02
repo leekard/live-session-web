@@ -1,8 +1,8 @@
 import { FastifyPluginAsync } from 'fastify';
-import { MultipartFile } from '@fastify/multipart';
 import { createWriteStream } from 'node:fs';
-import { mkdir, stat } from 'node:fs/promises';
+import { mkdir, stat, rename, unlink } from 'node:fs/promises';
 import path from 'node:path';
+import { randomBytes } from 'node:crypto';
 import { pipeline } from 'node:stream/promises';
 import { pool } from '../db/pool.js';
 import { requireAdmin } from '../plugins/auth.js';
@@ -51,82 +51,80 @@ const adminReleasesRoutes: FastifyPluginAsync = async (app) => {
     const admin = await requireAdmin(request, reply);
     if (!admin) return;
 
-    // Consume all parts in stream order so non-file fields (e.g. notes) are
+    // Consume every part in stream order so non-file fields (e.g. notes) are
     // captured regardless of whether they appear before or after the file.
+    // The file stream must be drained to let iteration advance to later parts,
+    // so we stream it into a temp file and finalize it only after validation.
     let version = '';
     let notes = '';
-    let installer: MultipartFile | undefined;
-
-    for await (const part of request.parts()) {
-      if (part.type === 'file') {
-        installer = part;
-      } else if (part.fieldname === 'version') {
-        version = String(part.value ?? '').trim();
-      } else if (part.fieldname === 'notes') {
-        notes = String(part.value ?? '').trim();
-      }
-    }
-
-    if (!installer) {
-      return reply.code(400).send({ ok: false, error: 'VALIDATION', message: 'multipart file required' });
-    }
-    if (!version || !isVersionValid(version)) {
-      installer.file.resume();
-      return reply.code(400).send({ ok: false, error: 'VALIDATION', message: 'version (x.y[.z]) required' });
-    }
-    const originalName = installer.filename || '';
-    const ext = path.extname(originalName).toLowerCase();
-    if (ext !== '.exe') {
-      installer.file.resume();
-      return reply.code(400).send({ ok: false, error: 'VALIDATION', message: 'only .exe installers are allowed' });
-    }
-
-    // Enforce that the new version is newer than the latest recorded release.
-    const existing = await pool.query('SELECT version FROM releases ORDER BY id DESC LIMIT 1');
-    if ((existing.rowCount ?? 0) > 0 && compareVersions(version, existing.rows[0].version) <= 0) {
-      installer.file.resume();
-      return reply.code(409).send({
-        ok: false,
-        error: 'VERSION_NOT_NEWER',
-        message: `Version ${version} is not newer than latest ${existing.rows[0].version}`,
-      });
-    }
-
-    // Preserve an .exe suffix for sane download filenames.
-    const storedName = `LiveSession_Setup_${version}.exe`;
-    const filePath = path.join(config.downloadsDir, storedName);
+    let filename = '';
+    const tmpName = `LiveSession_Setup_tmp_${randomBytes(6).toString('hex')}`;
+    const tmpPath = path.join(config.downloadsDir, tmpName);
 
     try {
       await mkdir(config.downloadsDir, { recursive: true });
-      await pipeline(installer.file, createWriteStream(filePath));
+      for await (const part of request.parts()) {
+        if (part.type === 'file') {
+          filename = part.filename || '';
+          await pipeline(part.file, createWriteStream(tmpPath));
+        } else if (part.fieldname === 'version') {
+          version = String(part.value ?? '').trim();
+        } else if (part.fieldname === 'notes') {
+          notes = String(part.value ?? '').trim();
+        }
+      }
     } catch (err) {
-      console.error('write installer failed:', err);
-      return reply.code(500).send({ ok: false, error: 'WRITE_FAILED' });
+      console.error('read multipart upload failed:', err);
+      return reply.code(400).send({ ok: false, error: 'UPLOAD_FAILED', message: 'Failed to read upload' });
     }
 
-    let size = 0;
+    const fileExists = await stat(tmpPath).then(() => true, () => false);
     try {
+      if (!fileExists) {
+        return reply.code(400).send({ ok: false, error: 'VALIDATION', message: 'multipart file required' });
+      }
+      if (!version || !isVersionValid(version)) {
+        return reply.code(400).send({ ok: false, error: 'VALIDATION', message: 'version (x.y[.z]) required' });
+      }
+      const ext = path.extname(filename).toLowerCase();
+      if (ext !== '.exe') {
+        return reply.code(400).send({ ok: false, error: 'VALIDATION', message: 'only .exe installers are allowed' });
+      }
+
+      // Enforce that the new version is newer than the latest recorded release.
+      const existing = await pool.query('SELECT version FROM releases ORDER BY id DESC LIMIT 1');
+      if ((existing.rowCount ?? 0) > 0 && compareVersions(version, existing.rows[0].version) <= 0) {
+        return reply.code(409).send({
+          ok: false,
+          error: 'VERSION_NOT_NEWER',
+          message: `Version ${version} is not newer than latest ${existing.rows[0].version}`,
+        });
+      }
+
+      // Preserve an .exe suffix for sane download filenames, then finalize the upload.
+      const storedName = `LiveSession_Setup_${version}.exe`;
+      const filePath = path.join(config.downloadsDir, storedName);
+      await rename(tmpPath, filePath);
+
       const info = await stat(filePath);
-      size = info.size;
-    } catch {
-      size = 0;
-    }
 
-    try {
       await pool.query(
         `INSERT INTO releases (version, file_name, file_size, notes) VALUES ($1, $2, $3, $4)
          ON CONFLICT (version) DO UPDATE SET file_name = EXCLUDED.file_name,
            file_size = EXCLUDED.file_size, notes = EXCLUDED.notes, published = false,
-           published_at = NULL
-         RETURNING id, version, file_name, file_size, notes, published`,
-        [version, storedName, size, notes || null]
+           published_at = NULL`,
+        [version, storedName, info.size, notes || null]
       );
-    } catch (err) {
-      console.error('insert release failed:', err);
-      return reply.code(500).send({ ok: false, error: 'DB_FAILED' });
-    }
 
-    return reply.send({ ok: true, releases: await listReleases() });
+      return reply.send({ ok: true, releases: await listReleases() });
+    } catch (err) {
+      console.error('process upload failed:', err);
+      return reply.code(500).send({ ok: false, error: 'DB_FAILED' });
+    } finally {
+      if (await stat(tmpPath).then(() => true, () => false)) {
+        await unlink(tmpPath).catch(() => {});
+      }
+    }
   });
 
   // Publish a release: mark as published and push a WS notification to clients.
