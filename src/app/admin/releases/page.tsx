@@ -3,6 +3,7 @@ import { requireAdmin } from "@/shared/lib/auth";
 import { adminReleases } from "@/shared/api/client";
 import { publishRelease } from "./actions";
 import UploadForm from "./UploadForm";
+import { NotesButton } from "./NotesButton";
 import { Badge, Button, Card, CardContent, CardHeader, CardTitle } from "@/shared/ui";
 
 export const metadata: Metadata = {
@@ -61,7 +62,9 @@ export default async function AdminReleasesPage() {
                         {release.published ? "Опубликован" : "Черновик"}
                       </Badge>
                     </td>
-                    <td className="py-3 pr-4 text-zinc-400">{release.notes || "—"}</td>
+                    <td className="py-3 pr-4">
+                      <NotesButton version={release.version} notes={release.notes} />
+                    </td>
                     <td className="py-3">
                       {!release.published ? (
                         <form action={publishRelease.bind(null, release.id)}>

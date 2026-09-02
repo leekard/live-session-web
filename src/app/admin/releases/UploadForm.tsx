@@ -59,15 +59,6 @@ export default function UploadForm() {
         />
       </label>
       <label className="flex flex-col gap-1 text-sm text-zinc-400">
-        Заметки (необязательно)
-        <input
-          type="text"
-          name="notes"
-          placeholder="Что нового"
-          className="h-10 rounded-md border border-border-subtle bg-card px-3 text-zinc-100"
-        />
-      </label>
-      <label className="flex flex-col gap-1 text-sm text-zinc-400">
         Файл (.exe)
         <input
           type="file"
@@ -80,6 +71,15 @@ export default function UploadForm() {
       <Button type="submit" size="sm" disabled={pending}>
         {pending ? "Загрузка…" : "Загрузить"}
       </Button>
+      <label className="flex w-full flex-col gap-1 text-sm text-zinc-400">
+        Заметки об обновлении (необязательно)
+        <textarea
+          name="notes"
+          rows={6}
+          placeholder={"Что нового:\n- исправлено\n- добавлено"}
+          className="w-full rounded-md border border-border-subtle bg-card px-3 py-2 text-sm text-zinc-50"
+        />
+      </label>
       {error && <p className="w-full text-xs text-red-400">{error}</p>}
     </form>
   );
