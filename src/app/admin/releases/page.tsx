@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { requireAdmin } from "@/shared/lib/auth";
 import { adminReleases } from "@/shared/api/client";
-import { publishRelease } from "./actions";
+import { publishRelease, deleteRelease } from "./actions";
 import UploadForm from "./UploadForm";
 import { NotesButton } from "./NotesButton";
 import { Badge, Button, Card, CardContent, CardHeader, CardTitle } from "@/shared/ui";
@@ -79,6 +79,16 @@ export default async function AdminReleasesPage() {
                             : "—"}
                         </span>
                       )}
+                      <form action={deleteRelease.bind(null, release.id)} className="mt-2">
+                        <Button
+                          type="submit"
+                          variant="outline"
+                          size="sm"
+                          className="text-red-400 hover:bg-red-950/40"
+                        >
+                          Удалить
+                        </Button>
+                      </form>
                     </td>
                   </tr>
                 ))}

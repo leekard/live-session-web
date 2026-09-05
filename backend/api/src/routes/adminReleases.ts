@@ -146,6 +146,22 @@ const adminReleasesRoutes: FastifyPluginAsync = async (app) => {
     await notifySync(release.version, release.notes || '');
     return reply.send({ ok: true, releases: await listReleases() });
   });
+
+  // Delete a release: remove the DB row and the installer file from disk.
+  app.delete<{ Params: { id: string } }>('/releases/:id', async (request, reply) => {
+    const admin = await requireAdmin(request, reply);
+    if (!admin) return;
+
+    const id = Number(request.params.id);
+    const res = await pool.query('SELECT file_name FROM releases WHERE id = $1', [id]);
+    if (res.rowCount === 0) {
+      return reply.code(404).send({ ok: false, error: 'NOT_FOUND', message: 'release not found' });
+    }
+    const filePath = path.join(config.downloadsDir, res.rows[0].file_name ?? '');
+    await pool.query('DELETE FROM releases WHERE id = $1', [id]);
+    await unlink(filePath).catch(() => {});
+    return reply.send({ ok: true, releases: await listReleases() });
+  });
 };
 
 export default adminReleasesRoutes;

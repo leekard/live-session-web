@@ -21,3 +21,18 @@ export async function publishRelease(id: number) {
   revalidatePath("/admin/releases");
   return body;
 }
+
+export async function deleteRelease(id: number) {
+  const store = await cookies();
+  const cookie = store.get(cookieName)?.value;
+  if (!cookie) return { ok: false, error: "UNAUTHORIZED" };
+
+  const res = await fetch(`${backendUrl}/api/admin/releases/${id}`, {
+    method: "DELETE",
+    headers: { "content-type": "application/json", "x-auth-token": cookie },
+    cache: "no-store",
+  });
+  const body = await res.json().catch(() => ({}));
+  revalidatePath("/admin/releases");
+  return body;
+}
